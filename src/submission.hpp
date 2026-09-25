@@ -26,6 +26,15 @@ public:
   {
     return data_[i * cols_ + j];
   };
+  double &index(std::size_t x)
+  {
+    return data_[x];
+  }
+
+  double index(std::size_t x) const
+  {
+    return data_[x];
+  }
 
   std::size_t Rows() const { return rows_; }
   std::size_t Cols() const { return cols_; }
@@ -46,28 +55,32 @@ void apply_stencil(const Grid &old_grid, Grid &new_grid)
   const std::size_t rows = old_grid.Rows();
   const std::size_t cols = old_grid.Cols();
 
-  // if (rows <= 1 || cols <= 1)
-  // {
-  //   return;
-  // }
+// if (rows <= 1 || cols <= 1)
+// {
+//   return;
+// }
+#pragma omp parallel for
+  for (std::size_t i{cols}; i < (rows) * (cols)-cols; ++i)
+  {
+    // std::size_t row{i / (cols - 2) + 1};
+    // std::size_t col{i % (cols - 2) + 1};
+    // if (i >= cols && i <= (rows - 1) * cols)
+    new_grid.index(i) = stencil(old_grid.index(i), old_grid.index(i - cols), old_grid.index(i + cols), old_grid.index(i + 1), old_grid.index(i - 1));
+  }
+
   for (std::size_t i{0}; i < rows; ++i)
   {
     new_grid(i, 0) = old_grid(i, 0);
     new_grid(i, cols - 1) = old_grid(i, cols - 1);
+    // new_grid(i, 0) = 0;
+    // new_grid(i, cols - 1) = 0;
   }
 
   for (std::size_t j{0}; j < cols; ++j)
   {
     new_grid(0, j) = old_grid(0, j);
     new_grid(rows - 1, j) = old_grid(rows - 1, j);
-  }
-
-#pragma omp parallel for
-  for (std::size_t i = 1; i < rows - 1; ++i)
-  {
-    for (std::size_t j{1}; j < cols - 1; ++j)
-    {
-      new_grid(i, j) = stencil(old_grid(i, j), old_grid(i - 1, j), old_grid(i + 1, j), old_grid(i, j + 1), old_grid(i, j - 1));
-    }
+    // new_grid(0, j) = 0;
+    // new_grid(rows - 1, j) = 0;
   }
 }
